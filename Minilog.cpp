@@ -17,8 +17,12 @@ namespace  //anonymous namespace: likes static global
 
     uint64_t timestamp_now()  /* use GMTtime */
     {
-        static auto hrc_offset = std::chrono::system_clock::now().time_since_epoch() - std::chrono::steady_clock::now().time_since_epoch();
-        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch() + hrc_offset).count();
+        //high_resolution_clock is best for measuring time intervals
+        //But indeed, high_resolution_clock' s epoch is not guaranteed to be 1970 Jan
+        //Only System clock's is guranteed to be 1970 Jan
+        //Thus we can use hrc_offset to get the offset and add it.
+        static auto hrc_offset = std::chrono::system_clock::now().time_since_epoch() - std::chrono::high_resolution_clock::now().time_since_epoch();
+        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + hrc_offset).count();
     }
 
 
@@ -40,19 +44,19 @@ namespace  //anonymous namespace: likes static global
         return id;
     }
 
-    template < typename T, typename Tuple >
+    template <typename T, typename Tuple>
     struct TupleIndex;
 
-    template < typename T,typename ... Types >
-    struct TupleIndex < T, std::tuple < T, Types... > >
+    template <typename T, typename ... Types>
+    struct TupleIndex < T, std::tuple <T, Types...>>
     {
         static constexpr const std::size_t value = 0;
     };
 
-    template < typename T, typename U, typename ... Types >
-    struct TupleIndex < T, std::tuple < U, Types... > >
+    template <typename T, typename U, typename ... Types>
+    struct TupleIndex <T, std::tuple <U, Types...>>
     {
-        static constexpr const std::size_t value = 1 + TupleIndex < T, std::tuple < Types... > >::value;
+        static constexpr const std::size_t value = 1 + TupleIndex <T, std::tuple <Types...>>::value;
     };
 
 } // anonymous namespace
@@ -128,7 +132,7 @@ namespace minilog
         if (loglevel >= LogLevel::CRIT)
             os.flush();
     }
-
+    //decode operation gets chars from ostream and put it into files
     template < typename Arg >
     char * decode(std::ostream & os, char * b, Arg * dummy)
     {
@@ -194,27 +198,26 @@ namespace minilog
 
     char * MiniLogLine::buffer()
     {
-        return !m_heap_buffer ? &m_stack_buffer[m_bytes_used] : &(m_heap_buffer.get())[m_bytes_used];
+        if(!m_heap_buffer) return &m_stack_buffer[m_bytes_used];  //no heap memory allocate, use stack memory
+        return &(m_heap_buffer.get())[m_bytes_used];
     }
 
-    void MiniLogLine::resize_buffer_if_needed(size_t additional_bytes)
-    {
+    //we has stack buffer and heap buffer
+    //Obviously, stack_buffer is reserved for more efficient case if less record should be written
+    //But when stack buffer 's size doesn't satisfy, then we use heap buffer and trans information to heap buffer
+    //When heap buffer is less than required, we allocate enough place
+    void MiniLogLine::resize_buffer_if_needed(size_t additional_bytes){
         size_t const required_size = m_bytes_used + additional_bytes;
-
-        if (required_size <= m_buffer_size)
+        if(required_size <= m_buffer_size)
             return;
-
-        if (!m_heap_buffer)
-        {
+        if(!m_heap_buffer){
             m_buffer_size = std::max(static_cast<size_t>(512), required_size);
             m_heap_buffer.reset(new char[m_buffer_size]);
             memcpy(m_heap_buffer.get(), m_stack_buffer, m_bytes_used);
-            return;
         }
-        else
-        {
+        else{
             m_buffer_size = std::max(static_cast<size_t>(2 * m_buffer_size), required_size);
-            std::unique_ptr < char [] > new_heap_buffer(new char[m_buffer_size]);
+            std::unique_ptr <char[]> new_heap_buffer(new char[m_buffer_size]);
             memcpy(new_heap_buffer.get(), m_heap_buffer.get(), m_bytes_used);
             m_heap_buffer.swap(new_heap_buffer);
         }
