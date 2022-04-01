@@ -39,13 +39,13 @@ CPU Caches:
   L1 Instruction 32 KiB (x4)
   L2 Unified 256 KiB (x4)
   L3 Unified 6144 KiB (x1)
-Load Average: 1.78, 1.99, 2.23
-----------------------------------------------------------
-Benchmark                Time             CPU   Iterations
-----------------------------------------------------------
-BM_logwrite     273337 ns       234771 ns         3066
+Load Average: 1.47, 1.77, 1.95
+---------------------------------------------------------------
+Benchmark                     Time             CPU   Iterations
+---------------------------------------------------------------
+BM_minilog_filewrite  333740872 ns      6174800 ns           10
 ```
-spdlog写入50000条测试的结果。spdlog文件较大，构建的时也明显更多
+spdlog写入50000条测试的结果。
 ```
 Run on (8 X 1400 MHz CPU s)
 CPU Caches:
