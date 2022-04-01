@@ -45,3 +45,17 @@ Benchmark                Time             CPU   Iterations
 ----------------------------------------------------------
 BM_logwrite     273337 ns       234771 ns         3066
 ```
+spdlog写入50000条测试的结果。spdlog文件较大，构建的时也明显更多
+```
+Run on (8 X 1400 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x4)
+  L1 Instruction 32 KiB (x4)
+  L2 Unified 256 KiB (x4)
+  L3 Unified 6144 KiB (x1)
+Load Average: 2.32, 2.03, 1.91
+-------------------------------------------------------------
+Benchmark                   Time             CPU   Iterations
+-------------------------------------------------------------
+BM_spdlog_fileinfo   20522389 ns     15318189 ns           53
+```
